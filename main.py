@@ -6,7 +6,7 @@ from discord import app_commands
 from discord.ext import commands
 import yaml
 from discord import app_commands
-cogs = ['cogs.management.database']
+cogs = ['cogs.management.database', 'cogs.moderation.mod', 'cogs.management.admin', 'cogs.fun.fun']
 print("Imported libs. RazBot is starting...")
 
 with open("config.yml", 'r') as yaml_read:
