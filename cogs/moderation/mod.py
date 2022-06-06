@@ -4,6 +4,8 @@ import yaml
 import discord
 from discord import app_commands
 from discord.ext import commands
+from typing import Optional
+from cogs.management.database import add_ban
 
 
 class mod(commands.Cog):
@@ -19,6 +21,44 @@ class mod(commands.Cog):
 
         await ctx.send("Hello!")
 
+    @commands.hybrid_command(name="ban")
+    @commands.has_permissions(ban_members=True)
+    async def ban_command(self, ctx: commands.Context, member: discord.Member, *,
+                          reason: str = "No reason set") -> None:
+        """
+        Ban a user from the guild.
+        """
+        if member.top_role >= ctx.author.top_role:
+            await ctx.send(
+                "This command failed due to role hierarchy! You are below or equal to the target user in this ~~pyramid scheme~~ discord server.")
+            return
+        else:
+            try:
+                await member.send(f"You have been banned from `{member.guild.name}`. \nBan reason: `{reason}`")
+            except:
+                pass
+            try:
+                await member.ban(reason=reason)
+            except Exception as e:
+                await ctx.send(f"Error whilst banning, do I have permission? \n`{e}`")
+                return
+            await ctx.send(
+                f"`{member.name}` (ID: `{member.id}`) has been banned by `{ctx.author.name}`, with the reason `{reason}`.")
+            await add_ban(member.id, member.guild.id, ctx.author.id, reason)
+
+    @commands.hybrid_command(name="unban")
+    @commands.has_permissions(ban_members=True)
+    async def unban_command(self, ctx, user: discord.User, *, reason: str = "No reason set") -> None:
+        """
+        Unban a user from the guild.
+        """
+        guild = ctx.guild
+        try:
+            await guild.unban(user, reason=reason)
+        except Exception as e:
+            return await ctx.send(e)
+        await ctx.send(f"UnBanned {user} successfully")
+
 
 async def setup(bot: commands.Bot) -> None:
-  await bot.add_cog(mod(bot))
+    await bot.add_cog(mod(bot))

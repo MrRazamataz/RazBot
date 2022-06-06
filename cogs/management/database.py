@@ -4,8 +4,13 @@ import yaml
 from discord.ext import commands
 import aiofiles
 import aiomysql
+import datetime
+# gen now time func
 
+def get_now_time():
+    return datetime.datetime.utcnow()
 
+# apod
 async def apod_on(guild_id, channel_id):
     pool = await aiomysql.create_pool(host=tokens["database_info"]["host"], port=3306,
                                       user=tokens["database_info"]["username"],
@@ -49,6 +54,24 @@ async def apod_run():
             return output
 
 
+# mod
+async def add_ban(member_id, guild_id, moderator_id, reason):
+    pool = await aiomysql.create_pool(host=tokens["database_info"]["host"], port=3306,
+                                      user=tokens["database_info"]["username"],
+                                      password=tokens["database_info"]["password"],
+                                      db='razbotxy_botDB')
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "INSERT INTO log_bans (member_id, guild_id, moderator_id, datetime, reason) VALUES (%s, %s, %s, %s, %s)",
+                (member_id, guild_id, moderator_id, get_now_time(), reason)
+            )
+            await conn.commit()
+            conn.close()
+            pool.close()
+            await pool.wait_closed()
+
+
 class db(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -66,11 +89,11 @@ class db(commands.Cog):
         global tokens
         with open("token.yml", mode="r") as file:
             tokens = yaml.safe_load(file)
-        print("[DB] Connecting to DB...")
         pool = await aiomysql.create_pool(host=tokens["database_info"]["host"], port=3306,
                                           user=tokens["database_info"]["username"],
                                           password=tokens["database_info"]["password"],
                                           db='razbotxy_botDB')
+        print("[DB] Connecting to DB...")
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
                 # await cur.execute(create_table_query)
