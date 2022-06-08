@@ -5,7 +5,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from typing import Optional
-from cogs.management.database import add_ban
+from cogs.management.database import add_ban, add_unban, revoke_ban
 
 
 class mod(commands.Cog):
@@ -56,8 +56,12 @@ class mod(commands.Cog):
         try:
             await guild.unban(user, reason=reason)
         except Exception as e:
-            return await ctx.send(e)
-        await ctx.send(f"UnBanned {user} successfully")
+            await ctx.send(f"Error whilst unbanning, do I have permission? \n`{e}`")
+            return
+        await ctx.send(
+            f"`{user.name}` (ID: `{user.id}`) has been unbanned by `{ctx.author.name}`, with the reason `{reason}`.")
+        await add_unban(user.id, guild.id, ctx.author.id, reason) # is running
+        await revoke_ban(user.id, guild.id) # not running whwy hwy hwy hwy
 
 
 async def setup(bot: commands.Bot) -> None:

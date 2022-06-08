@@ -5,10 +5,13 @@ from discord.ext import commands
 import aiofiles
 import aiomysql
 import datetime
+
+
 # gen now time func
 
 def get_now_time():
     return datetime.datetime.utcnow()
+
 
 # apod
 async def apod_on(guild_id, channel_id):
@@ -63,13 +66,48 @@ async def add_ban(member_id, guild_id, moderator_id, reason):
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "INSERT INTO log_bans (member_id, guild_id, moderator_id, datetime, reason) VALUES (%s, %s, %s, %s, %s)",
+                "INSERT INTO log_bans (member_id, guild_id, moderator_id, datetime, reason, revoked) VALUES (%s, %s, %s, %s, %s, %s)",
+                (member_id, guild_id, moderator_id, get_now_time(), reason, 0)
+            )
+            await conn.commit()
+            conn.close()
+            pool.close()
+            await pool.wait_closed()
+
+
+async def add_unban(member_id, guild_id, moderator_id, reason):
+    pool = await aiomysql.create_pool(host=tokens["database_info"]["host"], port=3306,
+                                      user=tokens["database_info"]["username"],
+                                      password=tokens["database_info"]["password"],
+                                      db='razbotxy_botDB')
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "INSERT INTO log_unbans (member_id, guild_id, moderator_id, datetime, reason) VALUES (%s, %s, %s, %s, %s)",
                 (member_id, guild_id, moderator_id, get_now_time(), reason)
             )
             await conn.commit()
             conn.close()
             pool.close()
             await pool.wait_closed()
+            return
+
+
+async def revoke_ban(member_id, guild_id):
+    print("working...")
+    pool = await aiomysql.create_pool(host=tokens["database_info"]["host"], port=3306,
+                                      user=tokens["database_info"]["username"],
+                                      password=tokens["database_info"]["password"],
+                                      db='razbotxy_botDB')
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(f"UPDATE log_bans SET revoked = 1 WHERE guild_id = {guild_id} AND member_id = {member_id}")
+            await conn.commit()
+            print("worked.")
+            conn.close()
+            pool.close()
+            await pool.wait_closed()
+            return
 
 
 class db(commands.Cog):
@@ -114,6 +152,12 @@ class db(commands.Cog):
                         await cur.execute(
                             f"UPDATE guild_settings SET member_count = {guild.member_count} WHERE id = {guild.id}")
                         await conn.commit()
+                # create the rest of the tables that the bot needs if they don't exist
+                await cur.execute(
+                    'CREATE TABLE IF NOT EXISTS log_bans (member_id BIGINT, guild_id BIGINT, moderator_id BIGINT, datetime DATETIME, reason TEXT, revoked INT)')
+                await cur.execute(
+                    'CREATE TABLE IF NOT EXISTS log_unbans (member_id BIGINT, guild_id BIGINT, moderator_id BIGINT, datetime DATETIME, reason TEXT)')
+                await conn.commit()
 
         conn.close()
         pool.close()
