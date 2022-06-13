@@ -60,6 +60,30 @@ class fun(commands.Cog):
         await apod_off(ctx.guild.id)
         await ctx.send(f"Daily APOD will no longer send in {ctx.guild.name}")
 
+    @apod.command(name="run")
+    async def apod_run(self, ctx: commands.Context) -> None:
+        """
+        Run APOD
+        """
+        embed = discord.Embed(title="<:nasa:935260377871159296> APOD",
+                              description="<a:Loading:982974699183177798> Contacting...", color=0xbb00ff)
+        embed.set_author(name="RazBot", url="https://razbot.xyz",
+                         icon_url="https://mrrazamataz.ga/archive/RazBot.png")
+        m = await ctx.send(embed=embed)
+        async with ctx.channel.typing():
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                        f"https://api.nasa.gov/planetary/apod?api_key={tokens['api_keys']['nasa']}") as resp:
+                    resp = await resp.json()
+                    await session.close()
+                    embed = discord.Embed(title=f"<:nasa:935260377871159296> APOD `{date.today()}`",
+                                          description=resp["explanation"],
+                                          color=0xfffa86)
+                    embed.set_image(url=resp["hdurl"])
+                    embed.set_author(name="RazBot", url="https://razbot.xyz",
+                                     icon_url="https://mrrazamataz.ga/archive/RazBot.png")
+                    await m.edit(embed=embed)
+
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(fun(bot))
