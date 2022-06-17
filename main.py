@@ -7,6 +7,7 @@ from discord import app_commands
 from discord.ext import commands
 import yaml
 from discord import app_commands
+import logging
 
 cogs = ['cogs.management.database', 'cogs.moderation.mod', 'cogs.management.admin', 'cogs.fun.fun']
 print("Imported libs. RazBot is starting...")
@@ -19,7 +20,7 @@ with open("token.yml", 'r') as yaml_read:
 description = '''This is the RazBot rewrite.'''
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='!', description=description, intents=intents)
-
+log_handler = logging.FileHandler(filename='razbot.log', encoding='utf-8', mode='w')
 
 async def main():
     async with bot:

@@ -84,6 +84,7 @@ async def revoke_ban(member_id, guild_id):
             conn.close()
             return
 
+
 async def add_kick(member_id, guild_id, moderator_id, reason):
     async with cog_pool.acquire() as conn:
         async with conn.cursor() as cur:
@@ -93,6 +94,51 @@ async def add_kick(member_id, guild_id, moderator_id, reason):
             )
             await conn.commit()
             conn.close()
+
+
+async def add_warn(member_id, guild_id, moderator_id, reason):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "INSERT INTO warns (member_id, guild_id, moderator_id, datetime, reason) VALUES (%s, %s, %s, %s, %s)",
+                (member_id, guild_id, moderator_id, get_now_time(), reason)
+            )
+            await conn.commit()
+            conn.close()
+
+
+async def get_user_guild_warncount(member_id, guild_id):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            count = await cur.execute(
+                f"SELECT id FROM warns WHERE member_id = {member_id} AND guild_id = {guild_id}")
+            count = await cur.fetchall()
+            count = len(count)
+            conn.close()
+            return count
+
+
+async def get_all_warnings_user_guild(member_id, guild_id):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"SELECT * FROM warns WHERE member_id = {member_id} AND guild_id = {guild_id}")
+            output = await cur.fetchall()
+            conn.close()
+            print(output)
+            return output
+
+
+async def delete_warning(warn_id, guild_id):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"DELETE FROM warns WHERE id = {warn_id} AND guild_id = {guild_id}")
+            await conn.commit()
+            conn.close()
+            if query == 0:
+                return True
+
 
 class db(commands.Cog):
     def __init__(self, bot):
@@ -145,6 +191,8 @@ class db(commands.Cog):
                     'CREATE TABLE IF NOT EXISTS log_unbans (member_id BIGINT, guild_id BIGINT, moderator_id BIGINT, datetime DATETIME, reason TEXT)')
                 await cur.execute(
                     'CREATE TABLE IF NOT EXISTS log_kicks (member_id BIGINT, guild_id BIGINT, moderator_id BIGINT, datetime DATETIME, reason TEXT)')
+                await cur.execute(
+                    'CREATE TABLE IF NOT EXISTS warns (member_id BIGINT, guild_id BIGINT, moderator_id BIGINT, datetime DATETIME, reason TEXT, id INT NOT NULL AUTO_INCREMENT PRIMARY KEY)')
                 await conn.commit()
 
         conn.close()

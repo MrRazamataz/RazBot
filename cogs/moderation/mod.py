@@ -1,11 +1,15 @@
 # MrRazamataz's RazBot
 # mod cog
+import datetime
+import time
+
 import yaml
 import discord
 from discord import app_commands
 from discord.ext import commands
 from typing import Optional
-from cogs.management.database import add_ban, add_unban, revoke_ban, add_kick
+from cogs.management.database import add_ban, add_unban, revoke_ban, add_kick, add_warn, get_user_guild_warncount, \
+    get_all_warnings_user_guild, delete_warning
 
 
 class mod(commands.Cog):
@@ -84,6 +88,52 @@ class mod(commands.Cog):
                 f"`{member.name}` (ID: `{member.id}`) has been kicked by `{ctx.author.name}`, with the reason `{reason}`.")
             await add_kick(member.id, ctx.guild.id, ctx.author.id, reason)
 
+    @commands.hybrid_command(name="warn")
+    async def warn_command(self, ctx: commands.Context, member: discord.Member, *, reason: str):
+        """
+        Warn a user in the guild. A reason is required.
+        """
+        if not reason:  # for message commands
+            return await ctx.send("A reason is required.")
+        await ctx.defer()
+        await add_warn(member.id, ctx.guild.id, ctx.author.id, reason)
+        count = await get_user_guild_warncount(member.id, ctx.guild.id)
+        embed = discord.Embed(title=f"You have been warned in `{member.guild.name}`", description="",
+                              colour=discord.Colour.red())
+        embed.description += f"You currently have **{count}** warnings in `{member.guild.name}`.\n Your latest warning had the reason: `{reason}`.\n Please make sure to follow the rules, otherwise you may risk further punishment!"
+        await member.send(embed=embed)
+        await ctx.send(
+            f"`{member.name}` (ID: `{member.id}`) has been warned by `{ctx.author.name}`, with the reason `{reason}`. They have **{count}** warnings in `{member.guild.name}`.")
+
+    @commands.hybrid_command(name="warnings", aliases=["viewwarns, viewwarnings"])
+    async def warnings_command(self, ctx: commands.Context, member: discord.Member) -> None:
+        """
+        View a user's warnings in the guild.
+        """
+        await ctx.defer()
+        warns = await get_all_warnings_user_guild(member.id, ctx.guild.id)
+        embed = discord.Embed(title=f"{member.name}'s warnings in `{ctx.guild.name}`:", description="",
+                              colour=discord.Colour.orange())
+        for row in warns:
+            moderator = await self.bot.fetch_user(row[2])
+            embed.add_field(name=f"Reason: \n`{row[4]}`",
+                            value=f"At: <t:{round(time.mktime(row[3].timetuple()))}:R> \nBy: {moderator.mention} \n**ID: {row[5]}**",
+                            inline=True)
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="deletewarn", aliases=["deletewarnings", "unwarn"])
+    async def delete_warn_command(self, ctx: commands.Context, warn_id: int) -> None:
+        """
+        Delete a user's warning in the guild.
+        """
+        if not warn_id:
+            await ctx.send("Please provide an ID. You can grab it from `!warnings <user>`.")
+            return
+        await ctx.defer()
+        if await delete_warning(warn_id, ctx.guild.id):
+            await ctx.send(f"Warning with ID `{id}` has been deleted.")
+        else:
+            await ctx.send(f"Warning with ID `{id}` does not exist in this guild.")
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(mod(bot))
