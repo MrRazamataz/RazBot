@@ -125,19 +125,51 @@ async def get_all_warnings_user_guild(member_id, guild_id):
                 f"SELECT * FROM warns WHERE member_id = {member_id} AND guild_id = {guild_id}")
             output = await cur.fetchall()
             conn.close()
-            print(output)
             return output
+
+
+async def mod_log(moderator_id, guild_id, action):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"INSERT INTO mod_log (moderator_id, guild_id, action, datetime) VALUES (%s, %s, %s, %s)",
+                (moderator_id, guild_id, action, get_now_time())
+            )
+            await conn.commit()
+            conn.close()
 
 
 async def delete_warning(warn_id, guild_id):
     async with cog_pool.acquire() as conn:
         async with conn.cursor() as cur:
-            await cur.execute(
-                f"DELETE FROM warns WHERE id = {warn_id} AND guild_id = {guild_id}")
+            await cur.execute(f"SELECT * FROM warns WHERE id = {warn_id} AND guild_id = {guild_id}")
+            query = await cur.fetchall()
+            if len(query) == 0:
+                conn.close()
+                return False
+            else:
+                await cur.execute(f"DELETE FROM warns WHERE id = {warn_id} AND guild_id = {guild_id}")
+                await conn.commit()
+                conn.close()
+                return True
+
+
+async def clear_all_users_warnings(member_id, guild_id):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(f"DELETE FROM warns WHERE member_id = {member_id} AND guild_id = {guild_id}")
             await conn.commit()
             conn.close()
-            if query == 0:
-                return True
+            return
+
+
+async def clear_all_guild_warnings(guild_id):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(f"DELETE FROM warns WHERE guild_id = {guild_id}")
+            await conn.commit()
+            conn.close()
+            return
 
 
 class db(commands.Cog):
@@ -193,6 +225,8 @@ class db(commands.Cog):
                     'CREATE TABLE IF NOT EXISTS log_kicks (member_id BIGINT, guild_id BIGINT, moderator_id BIGINT, datetime DATETIME, reason TEXT)')
                 await cur.execute(
                     'CREATE TABLE IF NOT EXISTS warns (member_id BIGINT, guild_id BIGINT, moderator_id BIGINT, datetime DATETIME, reason TEXT, id INT NOT NULL AUTO_INCREMENT PRIMARY KEY)')
+                await cur.execute(
+                    'CREATE TABLE IF NOT EXISTS mod_log (moderator_id BIGINT, guild_id BIGINT, action TEXT, datetime DATETIME)')
                 await conn.commit()
 
         conn.close()
