@@ -120,6 +120,7 @@ class mod(commands.Cog):
         View a user's warnings in the guild.
         """
         await ctx.defer()
+
         warns = await get_all_warnings_user_guild(member.id, ctx.guild.id)
         embed = discord.Embed(title=f"{member.name}'s warnings in `{ctx.guild.name}`:", description="",
                               colour=discord.Colour.orange())
