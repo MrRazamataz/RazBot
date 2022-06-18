@@ -172,6 +172,28 @@ async def clear_all_guild_warnings(guild_id):
             return
 
 
+# permissions
+async def set_role_permission(role_id, permission, state):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"INSERT INTO permissions (role_id, permission, state) VALUES (%s, %s, %s)",
+                (role_id, permission, state)
+            )
+            await conn.commit()
+            conn.close()
+            return
+
+async def check_role_permission(role_id, permission):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"SELECT state FROM permissions WHERE role_id = {role_id} AND permission = '{permission}'"
+            )
+            output = await cur.fetchall()
+            conn.close()
+            return output
+
 class db(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -198,7 +220,6 @@ class db(commands.Cog):
         print("[DB] Connecting to DB...")
         async with self.bot.pool.acquire() as conn:
             async with conn.cursor() as cur:
-                # await cur.execute(create_table_query)
                 await cur.execute(
                     'CREATE TABLE IF NOT EXISTS guild_settings (id BIGINT, member_count INT, apod_channel BIGINT)')
                 for guild in self.bot.guilds:
@@ -217,6 +238,7 @@ class db(commands.Cog):
                             f"UPDATE guild_settings SET member_count = {guild.member_count} WHERE id = {guild.id}")
                         await conn.commit()
                 # create the rest of the tables that the bot needs if they don't exist
+                print("[DB] Creating tables...")
                 await cur.execute(
                     'CREATE TABLE IF NOT EXISTS log_bans (member_id BIGINT, guild_id BIGINT, moderator_id BIGINT, datetime DATETIME, reason TEXT, revoked INT)')
                 await cur.execute(
@@ -227,8 +249,10 @@ class db(commands.Cog):
                     'CREATE TABLE IF NOT EXISTS warns (member_id BIGINT, guild_id BIGINT, moderator_id BIGINT, datetime DATETIME, reason TEXT, id INT NOT NULL AUTO_INCREMENT PRIMARY KEY)')
                 await cur.execute(
                     'CREATE TABLE IF NOT EXISTS mod_log (moderator_id BIGINT, guild_id BIGINT, action TEXT, datetime DATETIME)')
+                await cur.execute(
+                    'CREATE TABLE IF NOT EXISTS permissions (role_id BIGINT, permission TEXT, state TEXT)')
                 await conn.commit()
-
+                print("[DB] Tables present or created.")
         conn.close()
         print("[DB] Connection cursor closed.")
 

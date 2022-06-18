@@ -156,7 +156,7 @@ class mod(commands.Cog):
     async def clear_warns_command(self, ctx: commands.Context, mode: Choice[str],
                                   member: discord.Member = None) -> None:
         """
-        Clear a user's or guilds's warnings.
+        Clear a user's or guild's warnings.
         """
         await ctx.defer()
         if mode.value == "user":
@@ -172,7 +172,7 @@ class mod(commands.Cog):
                 await ctx.send(f"All warnings in `{ctx.guild.name}` have been cleared.")
                 await mod_log(ctx.author.id, ctx.guild.id, f"Cleared all warnings in `{ctx.guild.name}`")
             else:
-                await ctx.send("This requires you to have the `administrator` permission. Sorry matey!")
+                await ctx.send("This requires you to have the `administrator` discord permission. Sorry matey!")
 
 
 async def setup(bot: commands.Bot) -> None:
