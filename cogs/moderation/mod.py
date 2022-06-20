@@ -10,7 +10,7 @@ from discord.ext import commands
 from discord.app_commands import Choice
 from typing import Optional, Union
 from cogs.management.database import add_ban, add_unban, revoke_ban, add_kick, add_warn, get_user_guild_warncount, \
-    get_all_warnings_user_guild, delete_warning, mod_log, clear_all_users_warnings, clear_all_guild_warnings
+    get_all_warnings_user_guild, delete_warning, mod_log, clear_all_users_warnings, clear_all_guild_warnings, check_role_permission
 
 
 class mod(commands.Cog):
@@ -101,18 +101,22 @@ class mod(commands.Cog):
             await ctx.send("A reason is required.")
             return
         await ctx.defer()
-        await add_warn(member.id, ctx.guild.id, ctx.author.id, reason)
-        count = await get_user_guild_warncount(member.id, ctx.guild.id)
-        embed = discord.Embed(title=f"You have been warned in `{member.guild.name}`", description="",
-                              colour=discord.Colour.red())
-        embed.description += f"You currently have **{count}** warnings in `{member.guild.name}`.\n Your latest warning had the reason: `{reason}`.\n Please make sure to follow the rules, otherwise you may risk further punishment!"
-        try:
-            await member.send(embed=embed)
-        except:
-            pass
-        await ctx.send(
-            f"`{member.name}` (ID: `{member.id}`) has been warned by `{ctx.author.name}`, with the reason `{reason}`. They have **{count}** warnings in `{member.guild.name}`.")
-        await mod_log(ctx.author.id, ctx.guild.id, f"Warned {member.name} (ID: {member.id}). Reason: {reason}")
+        if await check_role_permission(ctx.author, "warn"):
+            await add_warn(member.id, ctx.guild.id, ctx.author.id, reason)
+            count = await get_user_guild_warncount(member.id, ctx.guild.id)
+            embed = discord.Embed(title=f"You have been warned in `{member.guild.name}`", description="",
+                                  colour=discord.Colour.red())
+            embed.description += f"You currently have **{count}** warnings in `{member.guild.name}`.\n Your latest warning had the reason: `{reason}`.\n Please make sure to follow the rules, otherwise you may risk further punishment!"
+            try:
+                await member.send(embed=embed)
+            except:
+                pass
+            await ctx.send(
+                f"`{member.name}` (ID: `{member.id}`) has been warned by `{ctx.author.name}`, with the reason `{reason}`. They have **{count}** warnings in `{member.guild.name}`.")
+            await mod_log(ctx.author.id, ctx.guild.id, f"Warned {member.name} (ID: {member.id}). Reason: {reason}")
+        else:
+            await ctx.send(
+                f"Sorry, {ctx.author.name}, you don't have permission for that. Required permission: `give warn`.")
 
     @commands.hybrid_command(name="warnings", aliases=["viewwarns, viewwarnings", "warns"])
     async def warnings_command(self, ctx: commands.Context, member: discord.Member) -> None:
@@ -120,32 +124,37 @@ class mod(commands.Cog):
         View a user's warnings in the guild.
         """
         await ctx.defer()
-
-        warns = await get_all_warnings_user_guild(member.id, ctx.guild.id)
-        embed = discord.Embed(title=f"{member.name}'s warnings in `{ctx.guild.name}`:", description="",
-                              colour=discord.Colour.orange())
-        for row in warns:
-            moderator = await self.bot.fetch_user(row[2])
-            embed.add_field(name=f"Reason: \n`{row[4]}`",
-                            value=f"At: <t:{round(time.mktime(row[3].timetuple()))}:R> \nBy: {moderator.mention} \n**ID: {row[5]}**",
-                            inline=True)
-        await ctx.send(embed=embed)
-        await mod_log(ctx.author.id, ctx.guild.id, f"Viewed {member.name}'s warnings in {ctx.guild.name}")
+        if await check_role_permission(ctx.author, "warnings"):
+            warns = await get_all_warnings_user_guild(member.id, ctx.guild.id)
+            embed = discord.Embed(title=f"{member.name}'s warnings in `{ctx.guild.name}`:", description="",
+                                  colour=discord.Colour.orange())
+            for row in warns:
+                moderator = await self.bot.fetch_user(row[2])
+                embed.add_field(name=f"Reason: \n`{row[4]}`",
+                                value=f"At: <t:{round(time.mktime(row[3].timetuple()))}:R> \nBy: {moderator.mention} \n**ID: {row[5]}**",
+                                inline=True)
+            await ctx.send(embed=embed)
+            await mod_log(ctx.author.id, ctx.guild.id, f"Viewed {member.name}'s warnings in {ctx.guild.name}")
+        else:
+            await ctx.send(f"Sorry, {ctx.author.name}, you don't have permission for that. Required permission: `view user warnings`.")
 
     @commands.hybrid_command(name="deletewarn", aliases=["deletewarnings", "unwarn"])
     async def delete_warn_command(self, ctx: commands.Context, warn_id: int) -> None:
         """
         Delete a user's warning in the guild.
         """
-        if not warn_id:
-            await ctx.send("Please provide an ID. You can grab it from `!warnings <user>`.")
-            return
-        await ctx.defer()
-        if await delete_warning(warn_id, ctx.guild.id):
-            await ctx.send(f"Warning with ID `{warn_id}` has been deleted.")
-            await mod_log(ctx.author.id, ctx.guild.id, f"Deleted warning with ID `{warn_id}`")
+        if await check_role_permission(ctx.author, "manage_warnings"):
+            if not warn_id:
+                await ctx.send("Please provide an ID. You can grab it from `!warnings <user>`.")
+                return
+            await ctx.defer()
+            if await delete_warning(warn_id, ctx.guild.id):
+                await ctx.send(f"Warning with ID `{warn_id}` has been deleted.")
+                await mod_log(ctx.author.id, ctx.guild.id, f"Deleted warning with ID `{warn_id}`")
+            else:
+                await ctx.send(f"Warning with ID `{warn_id}` does not exist in this guild.")
         else:
-            await ctx.send(f"Warning with ID `{warn_id}` does not exist in this guild.")
+            await ctx.send(f"Sorry, {ctx.author.name}, you don't have permission for that. Required permission: `manage warnings`.")
 
     @commands.hybrid_command(name="clearwarns", aliases=["clearwarn"])
     @app_commands.choices(
@@ -160,21 +169,23 @@ class mod(commands.Cog):
         Clear a user's or guild's warnings.
         """
         await ctx.defer()
-        if mode.value == "user":
-            if not member:
-                await ctx.send("Please provide a user.")
-                return
-            await clear_all_users_warnings(member.id, ctx.guild.id)
-            await ctx.send(f"All warnings for `{member.name}` (ID: {member.id}) in {ctx.guild.name} have been cleared.")
-            await mod_log(ctx.author.id, ctx.guild.id, f"Cleared all warnings for {member.name} (ID: {member.id})")
-        if mode.value == "guild":
-            if ctx.author.guild_permissions.administrator:
-                await clear_all_guild_warnings(ctx.guild.id)
-                await ctx.send(f"All warnings in `{ctx.guild.name}` have been cleared.")
-                await mod_log(ctx.author.id, ctx.guild.id, f"Cleared all warnings in `{ctx.guild.name}`")
-            else:
-                await ctx.send("This requires you to have the `administrator` discord permission. Sorry matey!")
-
+        if await check_role_permission(ctx.author, "manage_warnings"):
+            if mode.value == "user":
+                if not member:
+                    await ctx.send("Please provide a user.")
+                    return
+                await clear_all_users_warnings(member.id, ctx.guild.id)
+                await ctx.send(f"All warnings for `{member.name}` (ID: {member.id}) in {ctx.guild.name} have been cleared.")
+                await mod_log(ctx.author.id, ctx.guild.id, f"Cleared all warnings for {member.name} (ID: {member.id})")
+            if mode.value == "guild":
+                if ctx.author.guild_permissions.administrator:
+                    await clear_all_guild_warnings(ctx.guild.id)
+                    await ctx.send(f"All warnings in `{ctx.guild.name}` have been cleared.")
+                    await mod_log(ctx.author.id, ctx.guild.id, f"Cleared all warnings in `{ctx.guild.name}`")
+                else:
+                    await ctx.send("This requires you to have the `administrator` discord permission. Sorry matey!")
+        else:
+            await ctx.send(f"Sorry, {ctx.author.name}, you don't have permission for that. Required permission: `manage warnings`.")
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(mod(bot))

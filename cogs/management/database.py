@@ -7,6 +7,8 @@ from discord.ext import commands
 import aiofiles
 import aiomysql
 import datetime
+import os
+import traceback
 
 
 async def database_setup():
@@ -31,7 +33,6 @@ async def apod_on(guild_id, channel_id):
         async with conn.cursor() as cur:
             await cur.execute(f"UPDATE guild_settings SET apod_channel = {channel_id} WHERE id = {guild_id}")
             await conn.commit()
-            conn.close()
 
 
 async def apod_off(guild_id):
@@ -39,7 +40,6 @@ async def apod_off(guild_id):
         async with conn.cursor() as cur:
             await cur.execute(f"UPDATE guild_settings SET apod_channel = NULL WHERE id = {guild_id}")
             await conn.commit()
-            conn.close()
 
 
 async def apod_run():
@@ -47,7 +47,6 @@ async def apod_run():
         async with conn.cursor() as cur:
             cursor = await cur.execute(f"SELECT apod_channel FROM guild_settings")
             output = await cursor.fetchall()
-            conn.close()
             return output
 
 
@@ -60,7 +59,6 @@ async def add_ban(member_id, guild_id, moderator_id, reason):
                 (member_id, guild_id, moderator_id, get_now_time(), reason, 0)
             )
             await conn.commit()
-            conn.close()
 
 
 async def add_unban(member_id, guild_id, moderator_id, reason):
@@ -71,7 +69,6 @@ async def add_unban(member_id, guild_id, moderator_id, reason):
                 (member_id, guild_id, moderator_id, get_now_time(), reason)
             )
             await conn.commit()
-            conn.close()
             return
 
 
@@ -81,7 +78,6 @@ async def revoke_ban(member_id, guild_id):
             await cur.execute(
                 f"UPDATE log_bans SET revoked = 1 WHERE guild_id = {guild_id} AND member_id = {member_id}")
             await conn.commit()
-            conn.close()
             return
 
 
@@ -93,7 +89,6 @@ async def add_kick(member_id, guild_id, moderator_id, reason):
                 (member_id, guild_id, moderator_id, get_now_time(), reason)
             )
             await conn.commit()
-            conn.close()
 
 
 async def add_warn(member_id, guild_id, moderator_id, reason):
@@ -104,7 +99,6 @@ async def add_warn(member_id, guild_id, moderator_id, reason):
                 (member_id, guild_id, moderator_id, get_now_time(), reason)
             )
             await conn.commit()
-            conn.close()
 
 
 async def get_user_guild_warncount(member_id, guild_id):
@@ -114,7 +108,6 @@ async def get_user_guild_warncount(member_id, guild_id):
                 f"SELECT id FROM warns WHERE member_id = {member_id} AND guild_id = {guild_id}")
             count = await cur.fetchall()
             count = len(count)
-            conn.close()
             return count
 
 
@@ -124,7 +117,6 @@ async def get_all_warnings_user_guild(member_id, guild_id):
             await cur.execute(
                 f"SELECT * FROM warns WHERE member_id = {member_id} AND guild_id = {guild_id}")
             output = await cur.fetchall()
-            conn.close()
             return output
 
 
@@ -136,7 +128,6 @@ async def mod_log(moderator_id, guild_id, action):
                 (moderator_id, guild_id, action, get_now_time())
             )
             await conn.commit()
-            conn.close()
 
 
 async def delete_warning(warn_id, guild_id):
@@ -145,12 +136,10 @@ async def delete_warning(warn_id, guild_id):
             await cur.execute(f"SELECT * FROM warns WHERE id = {warn_id} AND guild_id = {guild_id}")
             query = await cur.fetchall()
             if len(query) == 0:
-                conn.close()
                 return False
             else:
                 await cur.execute(f"DELETE FROM warns WHERE id = {warn_id} AND guild_id = {guild_id}")
                 await conn.commit()
-                conn.close()
                 return True
 
 
@@ -159,7 +148,6 @@ async def clear_all_users_warnings(member_id, guild_id):
         async with conn.cursor() as cur:
             await cur.execute(f"DELETE FROM warns WHERE member_id = {member_id} AND guild_id = {guild_id}")
             await conn.commit()
-            conn.close()
             return
 
 
@@ -168,31 +156,72 @@ async def clear_all_guild_warnings(guild_id):
         async with conn.cursor() as cur:
             await cur.execute(f"DELETE FROM warns WHERE guild_id = {guild_id}")
             await conn.commit()
-            conn.close()
             return
+
+
+permission_cache = {}
 
 
 # permissions
 async def set_role_permission(role_id, permission, state):
     async with cog_pool.acquire() as conn:
         async with conn.cursor() as cur:
-            await cur.execute(
-                f"INSERT INTO permissions (role_id, permission, state) VALUES (%s, %s, %s)",
-                (role_id, permission, state)
-            )
-            await conn.commit()
-            conn.close()
+            await cur.execute("SELECT state FROM permissions WHERE role_id = %s AND permission = %s",
+                              (role_id, permission))
+            query = await cur.fetchall()
+            if len(query) == 0:
+                await cur.execute(
+                    f"INSERT INTO permissions (role_id, permission, state) VALUES (%s, %s, %s)",
+                    (role_id, permission, state)
+                )
+                await conn.commit()
+            else:
+                await cur.execute(
+                    f"UPDATE permissions SET state = %s WHERE role_id = %s AND permission = %s",
+                    (state, role_id, permission)
+                )
+                await conn.commit()
+            permission_cache.pop(f"{role_id}-{permission}")  # remove from cache
             return
 
-async def check_role_permission(role_id, permission):
-    async with cog_pool.acquire() as conn:
-        async with conn.cursor() as cur:
-            await cur.execute(
-                f"SELECT state FROM permissions WHERE role_id = {role_id} AND permission = '{permission}'"
-            )
-            output = await cur.fetchall()
-            conn.close()
-            return output
+
+async def check_role_permission(user_object, permission):
+    try:
+        #    if user_object.guild_permissions.administrator:
+        # return True
+        for role in user_object.roles:  # check cache for permission of the role before checking the database
+            try:
+                if permission_cache[f"{role.id}-{permission}"] == True:
+                    return True
+                elif permission_cache[f"{role.id}-{permission}"] == False:
+                    return False
+            except KeyError:
+                pass
+        async with cog_pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                for role in user_object.roles:
+                    await cur.execute(
+                        f"SELECT state FROM permissions WHERE role_id = {role.id} AND permission = '{permission}'"
+                    )
+                    output = await cur.fetchone()
+                    if output:
+                        if output[0] == "true":
+                            permission_cache[f"{role.id}-{permission}"] = True
+                            conn.close()
+                            return True
+                        elif output[0] == "false":
+                            permission_cache[f"{role.id}-{permission}"] = False
+                            conn.close()
+                            return False
+                else:
+                    conn.close()
+                    return False
+
+    except Exception as e:
+        traceback.print_exc()
+        print(e)
+        return False
+
 
 class db(commands.Cog):
     def __init__(self, bot):

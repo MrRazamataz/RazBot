@@ -1,5 +1,6 @@
 # RazBot new boy edition
 import asyncio
+import traceback
 
 import aiomysql
 import discord
@@ -42,6 +43,7 @@ async def main():
 
 @bot.event
 async def on_command_error(ctx, error):
+    traceback.print_exc()
     if isinstance(error, commands.CommandNotFound):
         await ctx.send(f"Unknown command, sorry. Use `{ctx.prefix}help` to view a list of commands.")
     elif isinstance(error, commands.MissingPermissions):
