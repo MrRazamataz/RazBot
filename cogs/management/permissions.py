@@ -10,6 +10,7 @@ from discord.ext import commands
 from discord.app_commands import Choice
 from cogs.management.database import mod_log, set_role_permission
 
+
 class PermissionHandler(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot: commands.Bot = bot
@@ -27,24 +28,27 @@ class PermissionHandler(commands.Cog):
         permission=[
             Choice(name="give warn", value="warn"),
             Choice(name="view user warnings", value="warnings"),
-            Choice(name="manage warnings", value="manage_warnings")
+            Choice(name="manage warnings", value="manage_warnings"),
+            Choice(name="manage server settings", value="manage_server")
         ],
         state=[
             Choice(name="true", value="true"),
             Choice(name="false", value="false")
         ]
     )
-    async def grantrole_command(self, ctx: commands.Context, role: discord.Role, permission: Choice[str], state: Choice[str]) -> None:
+    async def grantrole_command(self, ctx: commands.Context, role: discord.Role, permission: Choice[str],
+                                state: Choice[str]) -> None:
         """
         Grant a role a certain permission.
         """
         if ctx.author.guild_permissions.administrator:
             await ctx.send(f"Role `{role.name}` (ID: `{role.id}`) has had `{permission.name}` set to `{state.value}`.")
             await set_role_permission(role.id, permission.value, state.value)
-            await mod_log(ctx.author.id, ctx.guild.id, f"Updated {role.name} (ID: {role.id}) permission `{permission.name}` to `{state.value}`")
+            await mod_log(ctx.author.id, ctx.guild.id,
+                          f"Updated {role.name} (ID: {role.id}) permission `{permission.name}` to `{state.value}`")
         else:
-            await ctx.send(f"Sorry, `{ctx.author.name}`, but you do not have permission to use this command, this needs the discord administrator permission!")
-
+            await ctx.send(
+                f"Sorry, `{ctx.author.name}`, but you do not have permission to use this command, this needs the discord administrator permission!")
 
 
 async def setup(bot: commands.Bot) -> None:

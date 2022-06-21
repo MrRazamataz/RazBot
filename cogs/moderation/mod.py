@@ -10,7 +10,8 @@ from discord.ext import commands
 from discord.app_commands import Choice
 from typing import Optional, Union
 from cogs.management.database import add_ban, add_unban, revoke_ban, add_kick, add_warn, get_user_guild_warncount, \
-    get_all_warnings_user_guild, delete_warning, mod_log, clear_all_users_warnings, clear_all_guild_warnings, check_role_permission
+    get_all_warnings_user_guild, delete_warning, mod_log, clear_all_users_warnings, clear_all_guild_warnings, \
+    check_role_permission
 
 
 class mod(commands.Cog):
@@ -136,7 +137,8 @@ class mod(commands.Cog):
             await ctx.send(embed=embed)
             await mod_log(ctx.author.id, ctx.guild.id, f"Viewed {member.name}'s warnings in {ctx.guild.name}")
         else:
-            await ctx.send(f"Sorry, {ctx.author.name}, you don't have permission for that. Required permission: `view user warnings`.")
+            await ctx.send(
+                f"Sorry, {ctx.author.name}, you don't have permission for that. Required permission: `view user warnings`.")
 
     @commands.hybrid_command(name="deletewarn", aliases=["deletewarnings", "unwarn"])
     async def delete_warn_command(self, ctx: commands.Context, warn_id: int) -> None:
@@ -154,7 +156,8 @@ class mod(commands.Cog):
             else:
                 await ctx.send(f"Warning with ID `{warn_id}` does not exist in this guild.")
         else:
-            await ctx.send(f"Sorry, {ctx.author.name}, you don't have permission for that. Required permission: `manage warnings`.")
+            await ctx.send(
+                f"Sorry, {ctx.author.name}, you don't have permission for that. Required permission: `manage warnings`.")
 
     @commands.hybrid_command(name="clearwarns", aliases=["clearwarn"])
     @app_commands.choices(
@@ -175,7 +178,8 @@ class mod(commands.Cog):
                     await ctx.send("Please provide a user.")
                     return
                 await clear_all_users_warnings(member.id, ctx.guild.id)
-                await ctx.send(f"All warnings for `{member.name}` (ID: {member.id}) in {ctx.guild.name} have been cleared.")
+                await ctx.send(
+                    f"All warnings for `{member.name}` (ID: {member.id}) in {ctx.guild.name} have been cleared.")
                 await mod_log(ctx.author.id, ctx.guild.id, f"Cleared all warnings for {member.name} (ID: {member.id})")
             if mode.value == "guild":
                 if ctx.author.guild_permissions.administrator:
@@ -183,9 +187,12 @@ class mod(commands.Cog):
                     await ctx.send(f"All warnings in `{ctx.guild.name}` have been cleared.")
                     await mod_log(ctx.author.id, ctx.guild.id, f"Cleared all warnings in `{ctx.guild.name}`")
                 else:
-                    await ctx.send("This requires you to have the `administrator` discord permission. Sorry matey!")
+                    await ctx.send(
+                        f"Sorry, {ctx.author.name}, you don't have permission for that. Required permission: `administrator`.")
         else:
-            await ctx.send(f"Sorry, {ctx.author.name}, you don't have permission for that. Required permission: `manage warnings`.")
+            await ctx.send(
+                f"Sorry, {ctx.author.name}, you don't have permission for that. Required permission: `manage warnings`.")
+
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(mod(bot))

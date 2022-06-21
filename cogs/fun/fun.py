@@ -7,6 +7,7 @@ from discord import app_commands
 from discord.ext import commands
 from cogs.management.database import apod_on, apod_off, apod_run
 from datetime import date
+from cogs.management.database import check_role_permission
 
 
 class fun(commands.Cog):
@@ -49,16 +50,24 @@ class fun(commands.Cog):
         """
         Turn on daily APOD for a channel
         """
-        await apod_on(ctx.guild.id, ctx.channel.id)
-        await ctx.send(f"Daily APOD will send to {ctx.channel.mention}.")
+        if await check_role_permission(ctx.author, "manage_server"):
+            await apod_on(ctx.guild.id, ctx.channel.id)
+            await ctx.send(f"Daily APOD will send to {ctx.channel.mention}.")
+        else:
+            await ctx.send(
+                f"Sorry, {ctx.author.name}, you don't have permission for that. Required permission: `manage server settings`.")
 
     @apod.command(name="off")
     async def apod_off(self, ctx: commands.Context) -> None:
         """
         Turn off APOD for a channel
         """
-        await apod_off(ctx.guild.id)
-        await ctx.send(f"Daily APOD will no longer send in {ctx.guild.name}")
+        if await check_role_permission(ctx.author, "manage_server"):
+            await apod_off(ctx.guild.id)
+            await ctx.send(f"Daily APOD will no longer send in {ctx.guild.name}")
+        else:
+            await ctx.send(
+                f"Sorry, {ctx.author.name}, you don't have permission for that. Required permission: `manage server settings`.")
 
     @apod.command(name="run")
     async def apod_run(self, ctx: commands.Context) -> None:

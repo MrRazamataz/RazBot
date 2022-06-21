@@ -10,7 +10,8 @@ import yaml
 from discord import app_commands
 import logging
 
-cogs = ['cogs.management.database', 'cogs.moderation.mod', 'cogs.management.admin', 'cogs.fun.fun', 'cogs.management.permissions']
+cogs = ['cogs.management.database', 'cogs.moderation.mod', 'cogs.management.admin', 'cogs.fun.fun',
+        'cogs.management.permissions', 'cogs.management.settings']
 print("Imported libs. RazBot is starting...")
 
 with open("config.yml", 'r') as yaml_read:
@@ -22,6 +23,7 @@ description = '''This is the RazBot rewrite.'''
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='!', description=description, intents=intents)
 log_handler = logging.FileHandler(filename='razbot.log', encoding='utf-8', mode='w')
+
 
 async def main():
     async with bot:
@@ -41,6 +43,7 @@ async def main():
             await pool.wait_closed()
             await bot.close()
 
+
 @bot.event
 async def on_command_error(ctx, error):
     traceback.print_exc()
@@ -50,6 +53,7 @@ async def on_command_error(ctx, error):
         await ctx.send("Hey! Sorry but you don't have perms for that command. Duh-Doy!")
     else:
         raise error
+
 
 @bot.event
 async def on_ready():
