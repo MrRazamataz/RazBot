@@ -8,7 +8,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.app_commands import Choice
-from cogs.management.database import mod_log, set_role_permission
+from cogs.management.database import mod_log, set_role_permission, set_panel_user
 
 
 class PermissionHandler(commands.Cog):
@@ -46,6 +46,26 @@ class PermissionHandler(commands.Cog):
             await set_role_permission(role.id, permission.value, state.value)
             await mod_log(ctx.author.id, ctx.guild.id,
                           f"Updated {role.name} (ID: {role.id}) permission `{permission.name}` to `{state.value}`")
+        else:
+            await ctx.send(
+                f"Sorry, `{ctx.author.name}`, but you do not have permission to use this command, this needs the discord administrator permission!")
+
+    @permission_group.command(name="panelaccess")
+    @app_commands.choices(
+        state=[
+            Choice(name="true", value="true"),
+            Choice(name="false", value="false")
+        ]
+    )
+    async def panelaccess_command(self, ctx: commands.Context, user: discord.Member, state: Choice[str]) -> None:
+        """
+        Grant or revoke the ability to use the RazBot webpanel for this guild.
+        """
+        if ctx.author.guild_permissions.administrator:
+            await ctx.send(f"Member `{user.name}` (ID: `{user.id}`) has had panel access set to `{state.value}`.")
+            await set_panel_user(user.id, ctx.guild.id, state.value)
+            await mod_log(ctx.author.id, ctx.guild.id,
+                          f"Member `{user.name}` (ID: `{user.id}`) has had panel access set to `{state.value}`.")
         else:
             await ctx.send(
                 f"Sorry, `{ctx.author.name}`, but you do not have permission to use this command, this needs the discord administrator permission!")

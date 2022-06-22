@@ -25,7 +25,7 @@ class Settings(commands.Cog):
         """
         Set the channel for the bot's logs.
         """
-
+        await ctx.send("Not implemented.")
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Settings(bot))

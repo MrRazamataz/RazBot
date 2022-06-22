@@ -223,6 +223,27 @@ async def check_role_permission(user_object, permission):
         return False
 
 
+async def set_panel_user(user_id, guild_id, state):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("SELECT state FROM panel_users WHERE user_id = %s AND guild_id = %s",
+                              (user_id, guild_id))
+            query = await cur.fetchall()
+            if len(query) == 0:
+                await cur.execute(
+                    f"INSERT INTO panel_users (user_id, guild_id, state) VALUES (%s, %s, %s)",
+                    (user_id, guild_id, state)
+                )
+                await conn.commit()
+            else:
+                await cur.execute(
+                    f"UPDATE panel_users SET state = %s WHERE user_id = %s AND guild_id = %s",
+                    (state, user_id, guild_id)
+                )
+                await conn.commit()
+            return
+
+
 class db(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
