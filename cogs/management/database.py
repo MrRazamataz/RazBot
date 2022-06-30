@@ -187,8 +187,8 @@ async def set_role_permission(role_id, permission, state):
 
 async def check_role_permission(user_object, permission):
     try:
-        #    if user_object.guild_permissions.administrator:
-        # return True
+        if user_object.guild_permissions.administrator: # if admin on discord, grant all perms
+            return True
         for role in user_object.roles:  # check cache for permission of the role before checking the database
             try:
                 if permission_cache[f"{role.id}-{permission}"] == True:

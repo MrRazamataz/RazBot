@@ -1,0 +1,8 @@
+secret_stuff:
+  token: "discord bot token"
+database_info:
+  host: "mysql host ip address"
+  username: "mysql username"
+  password: "mysql password"
+api_keys:
+  nasa: "nasa apod api key. get from https://api.nasa.gov/" # for apod

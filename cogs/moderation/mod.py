@@ -2,6 +2,7 @@
 # mod cog
 import datetime
 import time
+import traceback
 
 import yaml
 import discord
@@ -12,6 +13,7 @@ from typing import Optional, Union
 from cogs.management.database import add_ban, add_unban, revoke_ban, add_kick, add_warn, get_user_guild_warncount, \
     get_all_warnings_user_guild, delete_warning, mod_log, clear_all_users_warnings, clear_all_guild_warnings, \
     check_role_permission
+from datetime import timedelta
 
 
 class mod(commands.Cog):
@@ -192,6 +194,42 @@ class mod(commands.Cog):
         else:
             await ctx.send(
                 f"Sorry, {ctx.author.name}, you don't have permission for that. Required permission: `manage warnings`.")
+
+    @commands.hybrid_command(name="mute", aliases=["tempmute"])
+    @app_commands.choices(
+        timecode=[
+            Choice(name="60 seconds", value="60s"),
+            Choice(name="5 minutes", value="5m"),
+            Choice(name="10 minutes", value="10m"),
+            Choice(name="1 hour", value="1h"),
+            Choice(name="2 hours", value="2h"),
+            Choice(name="1 day", value="1d"),
+            Choice(name="2 days", value="2d"),
+            Choice(name="1 week", value="1w"),
+            Choice(name="4 weeks", value="4w")
+        ]
+    )
+    async def mute_command(self, ctx: commands.Context, member: discord.Member, timecode: Choice[str], *, reason: str = "No reason set") -> None:
+        """
+        Timeout a user for a certain amount of time with an optional reason.
+        """
+        if member.top_role >= ctx.author.top_role:
+            await ctx.send(
+                "This command failed due to role hierarchy! You are below the target user in this ~~pyramid scheme~~ discord server.")
+            return
+        if ctx.author.guild_permissions.moderate_members:
+            try:
+                await ctx.defer()
+                delta = timedelta(
+                    seconds=60 if timecode.value == "60s" else 300 if timecode.value == "5m" else 600 if timecode.value == "10m" else 3600 if timecode.value == "1h" else 7200 if timecode.value == "2h" else 86400 if timecode.value == "1d" else 172800 if timecode.value == "2d" else 604800 if timecode.value == "1w" else 2419200 if timecode.value == "4w" else 0
+                )
+                await member.timeout(delta, reason=reason)
+                await ctx.send(
+                    f"`{member.name}` (ID: `{member.id}`) has been muted by `{ctx.author.name}`, with the reason `{reason}` for `{timecode.value}`.")
+                await mod_log(ctx.author.id, ctx.guild.id, f"Muted {member.name} (ID: {member.id}). Reason: {reason}. Duration: {timecode.value}")
+            except Exception as e:
+                print(e)
+                print(traceback.format_exc())
 
 
 async def setup(bot: commands.Bot) -> None:
