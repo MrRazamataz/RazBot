@@ -65,6 +65,10 @@ def memegen_impact():
                     draw.text((x, y), line, fill='white', font=font, stroke_width=stroke_width, stroke_fill='black')
                     y += line_height
 
+                # add razbot.xyz hahahaha L
+                minus_x = image_width-15
+                draw.text((image_width-minus_x, image_height-15), "razbot.xyz", fill='white', stroke_width=2, stroke_fill='black')
+
                 # save meme
                 os.remove("image_name.jpg")
                 random_file = random_char(10)
