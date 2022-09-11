@@ -8,7 +8,7 @@ from discord import app_commands
 from discord.ext import commands
 import yaml
 from discord import app_commands
-import logging
+import logging, logging.handlers
 
 cogs = ['cogs.management.database', 'cogs.moderation.mod', 'cogs.management.admin', 'cogs.fun.fun',
         'cogs.management.permissions', 'cogs.management.settings']
@@ -22,7 +22,17 @@ with open("token.yml", 'r') as yaml_read:
 description = '''This is the RazBot rewrite.'''
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='!', description=description, intents=intents)
-log_handler = logging.FileHandler(filename='razbot.log', encoding='utf-8', mode='w')
+
+logger = logging.getLogger('discord')
+logger.setLevel(logging.ERROR)
+handler = logging.handlers.RotatingFileHandler(
+    filename='razbot.log',
+    encoding='utf-8',
+)
+dt_fmt = '%Y-%m-%d %H:%M:%S'
+formatter = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}', dt_fmt, style='{')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 async def main():

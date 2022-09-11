@@ -187,7 +187,7 @@ async def set_role_permission(role_id, permission, state):
 
 async def check_role_permission(user_object, permission):
     try:
-        if user_object.guild_permissions.administrator: # if admin on discord, grant all perms
+        if user_object.guild_permissions.administrator:  # if admin on discord, grant all perms
             return True
         for role in user_object.roles:  # check cache for permission of the role before checking the database
             try:
@@ -244,6 +244,27 @@ async def set_panel_user(user_id, guild_id, state):
             return
 
 
+# settings
+
+async def set_log_channel(guild_id, channel_id):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"UPDATE guild_settings SET log_channel = {channel_id} WHERE id = {guild_id}")
+            await conn.commit()
+            return
+
+
+async def set_welcome_channel(guild_id, channel_id, state):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            if state == "true":
+                await cur.execute(f"UPDATE guild_settings SET welcome_channel = {channel_id} WHERE id = {guild_id}")
+            else:
+                await cur.execute(f"UPDATE guild_settings SET welcome_channel = NULL WHERE id = {guild_id}")
+            await conn.commit()
+
+
 class db(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -271,7 +292,7 @@ class db(commands.Cog):
         async with self.bot.pool.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    'CREATE TABLE IF NOT EXISTS guild_settings (id BIGINT, member_count INT, apod_channel BIGINT)')
+                    'CREATE TABLE IF NOT EXISTS guild_settings (id BIGINT, member_count INT, apod_channel BIGINT, log_channel BIGINT)')
                 for guild in self.bot.guilds:
                     print(f"[DB] [Guild settings] Checking for settings in `{guild.id}`...")
                     check = await cur.execute(f"SELECT member_count FROM guild_settings WHERE id = {guild.id}")
