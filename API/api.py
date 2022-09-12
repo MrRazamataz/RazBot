@@ -10,6 +10,7 @@ import urllib.request
 import traceback
 import random
 import string
+import yt_dlp
 
 
 def random_char(y):
@@ -66,8 +67,9 @@ def memegen_impact():
                     y += line_height
 
                 # add razbot.xyz hahahaha L
-                minus_x = image_width-15
-                draw.text((image_width-minus_x, image_height-15), "razbot.xyz", fill='white', stroke_width=2, stroke_fill='black')
+                minus_x = image_width - 15
+                draw.text((image_width - minus_x, image_height - 15), "razbot.xyz", fill='white', stroke_width=2,
+                          stroke_fill='black')
 
                 # save meme
                 os.remove("image_name.jpg")
@@ -85,6 +87,7 @@ def memegen_impact():
         print(e)
         print(traceback.print_exc())
         abort(500)
+
 
 @app.route('/memegen/megamind', methods=['GET'])
 def memegen_megamind():
@@ -131,8 +134,9 @@ def memegen_megamind():
                     y += line_height
 
                 # add razbot.xyz hahahaha L
-                minus_x = image_width-15
-                draw.text((image_width-minus_x, image_height-15), "razbot.xyz", fill='white', stroke_width=2, stroke_fill='black')
+                minus_x = image_width - 15
+                draw.text((image_width - minus_x, image_height - 15), "razbot.xyz", fill='white', stroke_width=2,
+                          stroke_fill='black')
 
                 # save meme
                 random_file = random_char(10)
@@ -156,7 +160,40 @@ def get_image():
     if request.method == 'GET':
         file = request.args.get('file')
         file_location = f"images/{file}"
-        return send_file(file_location, mimetype='image')
+        return send_file(file_location, mimetype='image'), 200
+
+
+@app.route('/file', methods=['GET'])
+def get_file():
+    if request.method == 'GET':
+        file = request.args.get('file')
+        file_location = f"files/{file}"
+        return send_file(file_location), 200
+
+
+@app.route('/yt2mp4', methods=['GET'])
+def yt2mp4():
+    if request.method == 'GET':
+        done = False
+        link = request.args.get('link')
+        video_info = yt_dlp.YoutubeDL().extract_info(
+            url=link, download=False
+        )
+        filename = f"{video_info['title']}.{video_info['ext']}"
+        mp4_filename = f"{video_info['title']}.mp4"
+        ydl_opts = {
+            'format': 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b',
+            'outtmpl': mp4_filename
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            output = ydl.download(link)
+            os.rename(mp4_filename, f"files/{mp4_filename}")
+            done = True
+            output = {"url": f"https://api.razbot.xyz/file?file={mp4_filename}"}
+            if done:
+                return output, 200
+        if not done:
+            abort(500)
 
 
 if __name__ == '__main__':
