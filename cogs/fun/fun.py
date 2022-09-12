@@ -144,8 +144,8 @@ class fun(commands.Cog):
             await ctx.send(f"{ctx.prefix}help memegen")
 
     @memegen.command(name="impact")
-    async def memegen_impact(self, ctx: commands.Context, image: discord.Attachment, top_text: str,
-                             bottom_text: str) -> None:
+    async def memegen_impact(self, ctx: commands.Context, image: discord.Attachment, top_text: str = "%20",
+                             bottom_text: str = "%20") -> None:
         """
         Add top and bottom text to an image.
         """
@@ -162,6 +162,26 @@ class fun(commands.Cog):
                     await f.close()
                     await ctx.send(file=discord.File('IMPACT-image.jpg'))
                     os.remove('IMPACT-image.jpg')
+                    await session.close()
+
+    @memegen.command(name="megamind")
+    async def memegen_megamind(self, ctx: commands.Context, top_text: str = "%20", bottom_text: str = "%20") -> None:
+        """
+        Add top and bottom text to the megamind image.
+        """
+        await ctx.defer()
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                    f"https://api.razbot.xyz/memegen/megamind?top_text={top_text}&bottom_text={bottom_text}") as resp:
+                resp = await resp.json()
+
+            async with session.get(resp['url']) as resp:
+                if resp.status == 200:
+                    f = await aiofiles.open("MEGAMIND-image.jpg", mode='wb')
+                    await f.write(await resp.read())
+                    await f.close()
+                    await ctx.send(file=discord.File('MEGAMIND-image.jpg'))
+                    os.remove('MEGAMIND-image.jpg')
                     await session.close()
 
 
