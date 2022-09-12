@@ -1,7 +1,8 @@
 from flask import Flask, request, abort, jsonify, send_file
 import json
-
+from flask_cors import CORS, cross_origin
 app = Flask(__name__)
+cors = CORS(app, resources={r"/*": {"origins": "*", "allow_headers": "*", "expose_headers": "*"}})
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
 import requests
@@ -168,7 +169,7 @@ def get_file():
     if request.method == 'GET':
         file = request.args.get('file')
         file_location = f"files/{file}"
-        return send_file(file_location), 200
+        return send_file(file_location, as_attachment=True), 200
 
 
 @app.route('/yt2mp4', methods=['GET'])
