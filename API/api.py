@@ -12,6 +12,7 @@ import traceback
 import random
 import string
 import yt_dlp
+import re
 
 
 def random_char(y):
@@ -181,7 +182,8 @@ def yt2mp4():
             url=link, download=False
         )
         filename = f"{video_info['title']}.{video_info['ext']}"
-        mp4_filename = f"{video_info['title']}.mp4"
+        title = re.sub(r"[^a-zA-Z]+", "", video_info['title'])
+        mp4_filename = f"{title}.mp4"
         ydl_opts = {
             'format': 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b',
             'outtmpl': mp4_filename
