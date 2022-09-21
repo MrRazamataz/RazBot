@@ -1,6 +1,7 @@
 from flask import Flask, request, abort, jsonify, send_file
 import json
 from flask_cors import CORS, cross_origin
+
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*", "allow_headers": "*", "expose_headers": "*"}})
 from PIL import Image, ImageDraw, ImageFont
@@ -197,6 +198,19 @@ def yt2mp4():
                 return output, 200
         if not done:
             abort(500)
+
+
+@app.route('/recommend/song', methods=['GET'])
+def recommend_song():
+    if request.method == 'GET':
+        # open json file
+        with open('templates/songs.json', encoding="utf8") as f:
+            data = json.load(f)
+        # select random song
+        song = random.choice(data)
+        # return song
+        output = {"song": song}
+        return output, 200
 
 
 if __name__ == '__main__':

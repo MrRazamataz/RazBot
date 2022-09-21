@@ -184,6 +184,28 @@ class fun(commands.Cog):
                     os.remove('MEGAMIND-image.jpg')
                     await session.close()
 
+    @commands.hybrid_group(name="recommend")
+    async def recommend(self, ctx: commands.Context) -> None:
+        """
+        Recommend a song or film
+        """
+        if ctx.invoked_subcommand is None:
+            await ctx.send(f"{ctx.prefix}help recommend")
+
+    @recommend.command(name="song")
+    async def recommend_song(self, ctx: commands.Context) -> None:
+        """
+        Recommend a song to you from MrRazamataz's playlist
+        """
+        await ctx.defer()
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"https://api.razbot.xyz/recommend/song") as resp:
+                if resp.status == 200:
+                    resp = await resp.json()
+                    await ctx.send(f"__Song recommendation:__ \nTrack: **{resp['song']['title']}**\nArtist: **{resp['song']['artist']}**\nAlbum: **{resp['song']['album']}**\n")
+                else:
+                    await ctx.send("An error occurred.")
+
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(fun(bot))
