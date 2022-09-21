@@ -159,6 +159,17 @@ async def clear_all_guild_warnings(guild_id):
             return
 
 
+async def add_reaction_role(msg_id, emoji, role_id):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"INSERT INTO reaction_roles (msg_id, emoji, role_id) VALUES (%s, %s, %s)",
+                (msg_id, emoji, role_id)
+            )
+            await conn.commit()
+            return
+
+
 permission_cache = {}
 
 
@@ -322,6 +333,8 @@ class db(commands.Cog):
                     'CREATE TABLE IF NOT EXISTS mod_log (moderator_id BIGINT, guild_id BIGINT, action TEXT, datetime DATETIME)')
                 await cur.execute(
                     'CREATE TABLE IF NOT EXISTS permissions (role_id BIGINT, permission TEXT, state TEXT)')
+                await cur.execute(
+                    'CREATE TABLE IF NOT EXISTS reaction_roles (msg_id BIGINT, emoji TEXT, role_id BIGINT)')
                 await conn.commit()
                 print("[DB] Tables present or created.")
         conn.close()
