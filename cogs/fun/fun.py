@@ -204,7 +204,7 @@ class fun(commands.Cog):
                     resp = await resp.json()
                     await ctx.send(f"__Song recommendation:__ \nTrack: **{resp['song']['title']}**\nArtist: **{resp['song']['artist']}**\nAlbum: **{resp['song']['album']}**\n")
                 else:
-                    await ctx.send("An error occurred.")
+                    await ctx.send("An with the API occurred, sorry. In the meantime, why not try and play a song with RazBot in a voice channel?")
 
 
 async def setup(bot: commands.Bot) -> None:
