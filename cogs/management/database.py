@@ -170,6 +170,15 @@ async def add_reaction_role(msg_id, emoji, role_id):
             return
 
 
+async def get_reaction_role(msg_id, emoji):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"SELECT role_id FROM reaction_roles WHERE msg_id = {msg_id} AND emoji = '{emoji}'")
+            output = await cur.fetchall()
+            return output
+
+
 permission_cache = {}
 
 
