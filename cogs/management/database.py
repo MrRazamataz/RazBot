@@ -170,11 +170,41 @@ async def add_reaction_role(msg_id, emoji, role_id):
             return
 
 
+async def check_for_reaction_role_exists(msg_id, emoji, role_id):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"SELECT * FROM reaction_roles WHERE msg_id = {msg_id} AND emoji = '{emoji}' AND role_id = {role_id}")
+            query = await cur.fetchall()
+            if len(query) == 0:
+                return False
+            else:
+                return True
+
+
 async def get_reaction_role(msg_id, emoji):
     async with cog_pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
                 f"SELECT role_id FROM reaction_roles WHERE msg_id = {msg_id} AND emoji = '{emoji}'")
+            output = await cur.fetchall()
+            return output
+
+
+async def delete_reaction_role(msg_id, emoji, role_id):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"DELETE FROM reaction_roles WHERE msg_id = {msg_id} AND emoji = '{emoji}' AND role_id = {role_id}")
+            await conn.commit()
+            return
+
+
+async def view_reaction_roles(msg_id):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"SELECT * FROM reaction_roles WHERE msg_id = {msg_id}")
             output = await cur.fetchall()
             return output
 
