@@ -11,7 +11,7 @@ from discord import app_commands
 import logging, logging.handlers
 
 cogs = ['cogs.management.database', 'cogs.moderation.mod', 'cogs.management.admin', 'cogs.fun.fun',
-        'cogs.management.permissions', 'cogs.management.settings', 'cogs.tools.yt2mp4', 'cogs.tools.reaction_roles',]
+        'cogs.management.permissions', 'cogs.management.settings', 'cogs.tools.yt2mp4', 'cogs.tools.reaction_roles', 'cogs.tools.remindme']
 print("Imported libs. RazBot is starting...")
 
 with open("config.yml", 'r') as yaml_read:

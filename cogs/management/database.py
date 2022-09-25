@@ -159,6 +159,7 @@ async def clear_all_guild_warnings(guild_id):
             return
 
 
+# reaction roles
 async def add_reaction_role(msg_id, emoji, role_id):
     async with cog_pool.acquire() as conn:
         async with conn.cursor() as cur:
@@ -207,6 +208,25 @@ async def view_reaction_roles(msg_id):
                 f"SELECT * FROM reaction_roles WHERE msg_id = {msg_id}")
             output = await cur.fetchall()
             return output
+
+
+# reminders
+
+async def add_reminder(user_id, reminder, time, dm_or_channel, channel_id=None):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            if channel_id:
+                await cur.execute(
+                    f"INSERT INTO reminders (user_id, channel_id, reminder, time, type) VALUES (%s, %s, %s, %s, %s)",
+                    (user_id, channel_id, reminder, time, dm_or_channel)
+                )
+            else:
+                await cur.execute(
+                    f"INSERT INTO reminders (user_id, reminder, time, type) VALUES (%s, %s, %s, %s)",
+                    (user_id, reminder, time, dm_or_channel)
+                )
+            await conn.commit()
+            return
 
 
 permission_cache = {}
@@ -374,6 +394,8 @@ class db(commands.Cog):
                     'CREATE TABLE IF NOT EXISTS permissions (role_id BIGINT, permission TEXT, state TEXT)')
                 await cur.execute(
                     'CREATE TABLE IF NOT EXISTS reaction_roles (msg_id BIGINT, emoji TEXT, role_id BIGINT)')
+                await cur.execute(
+                    'CREATE TABLE IF NOT EXISTS reminders (user_id BIGINT, channel_id BIGINT, reminder TEXT, time DATETIME, type TEXT')
                 await conn.commit()
                 print("[DB] Tables present or created.")
         conn.close()
