@@ -2,16 +2,31 @@
 # remindme cog
 import aiohttp
 import discord
+import aiocron
 from discord.ext import commands
 from discord import app_commands
 from discord.app_commands import Choice
-from cogs.management.database import add_reminder
+from cogs.management.database import add_reminder, check_for_reminders, delete_reminder
 import datetime
 
 
 class remindme(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot: commands.Bot = bot
+
+        @aiocron.crontab('* * * * *')
+        async def check_reminders():
+            reminders = await check_for_reminders("dm")
+            for reminder in reminders:
+                user = await self.bot.fetch_user(reminder[0])
+                await user.send(f"**Reminder from {reminder[3]}:** \n`{reminder[2]}`")
+                await delete_reminder(reminder[2], reminder[0], reminder[3])
+            reminders = await check_for_reminders("channel")
+            for reminder in reminders:
+                channel = await self.bot.fetch_channel(reminder[1])
+                user = await self.bot.fetch_user(reminder[0])
+                await channel.send(f"**Reminder from {reminder[3]}:** by {user.mention}\n`{reminder[2]}`")
+                await delete_reminder(reminder[2], reminder[0], reminder[3])
 
     @commands.hybrid_command(name="remindme", aliases=["remind"])
     @app_commands.choices(

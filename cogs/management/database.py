@@ -229,6 +229,26 @@ async def add_reminder(user_id, reminder, time, dm_or_channel, channel_id=None):
             return
 
 
+async def check_for_reminders(dm_or_channel):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            if dm_or_channel == "dm":
+                await cur.execute(f"SELECT * FROM reminders WHERE time < '{get_now_time()}' AND type = 'dm'")
+            else:
+                await cur.execute(f"SELECT * FROM reminders WHERE time < '{get_now_time()}' AND type = 'channel'")
+            output = await cur.fetchall()
+            return output
+
+
+async def delete_reminder(reminder, user_id, time):
+    async with cog_pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"DELETE FROM reminders WHERE reminder = '{reminder}' AND user_id = {user_id} AND time = '{time}'")
+            await conn.commit()
+            return
+
+
 permission_cache = {}
 
 
@@ -395,7 +415,7 @@ class db(commands.Cog):
                 await cur.execute(
                     'CREATE TABLE IF NOT EXISTS reaction_roles (msg_id BIGINT, emoji TEXT, role_id BIGINT)')
                 await cur.execute(
-                    'CREATE TABLE IF NOT EXISTS reminders (user_id BIGINT, channel_id BIGINT, reminder TEXT, time DATETIME, type TEXT')
+                    'CREATE TABLE IF NOT EXISTS reminders (user_id BIGINT, channel_id BIGINT, reminder TEXT, time DATETIME, type TEXT)')
                 await conn.commit()
                 print("[DB] Tables present or created.")
         conn.close()
