@@ -3,6 +3,7 @@ import json
 from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
 cors = CORS(app, resources={r"/*": {"origins": "*", "allow_headers": "*", "expose_headers": "*"}})
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
