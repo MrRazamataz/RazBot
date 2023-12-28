@@ -90,11 +90,15 @@ def memegen_impact():
                 return output
         elif request.method == 'POST':
             top_text = request.values.get('top_text')
+            if top_text == None:
+                top_text = "%20"
             bottom_text = request.values.get('bottom_text')
+            if bottom_text == None:
+                bottom_text = "%20"
             image = request.files.get('image')
             # save image
             image.save(image.filename)
-            if top_text and bottom_text and image:
+            if image:
                 # load image
                 im = Image.open(image.filename)
                 im = im.convert('RGB')
